@@ -1,0 +1,9 @@
+{
+	"name": "apidog",
+	"title": "APIdog LongPoll",
+	"id": "jid1-3YrPFj5wyrD5KA",
+	"description": "Расширение, позволяющее работать с LongPoll напрямую от клиента, не используя сервер APIdog'а",
+	"author": "APIdog",
+	"license": "MPL 2.0",
+	"version": "1.0"
+}
