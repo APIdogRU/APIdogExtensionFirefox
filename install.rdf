@@ -44,6 +44,11 @@
 				<em:description>Расширение, позволяющее работать с LongPoll напрямую от клиента, не используя сервер APIdog'а</em:description>
 			</Description>
 			<Description>
+				<em:locale>ua</em:locale>
+				<em:name>APIdog LongPoll</em:name>
+				<em:description>Розширення, що дозволяє працювати з LongPoll безпосередньо від клієнта, не використовуючи сервер APIdog</em:description>
+			</Description>
+			<Description>
 				<em:locale>en</em:locale>
 				<em:name>APIdog LongPoll</em:name>
 				<em:description>This extension make LongPoll work stable and speedly, without using APIdog's proxy-server.</em:description>
