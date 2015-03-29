@@ -1,3 +1,9 @@
+/*
+ * APIdog LongPoll extension for Firefox
+ * v1.2
+ * 29/03/2015
+ */
+
 function sendEvent (method, data, callback) {
 	var e = document.createElement("apidogExtensionTransport");
 	e.setAttribute("method", method);
