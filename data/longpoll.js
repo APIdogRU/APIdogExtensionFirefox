@@ -1,15 +1,15 @@
 function sendEvent (method, data, callback) {
 	var e = document.createElement("apidogExtensionTransport");
-    e.setAttribute("method", method);
-    if (callback)
-    	e.setAttribute("callback", callback);
-    for (var i in data)
+	e.setAttribute("method", method);
+	if (callback)
+		e.setAttribute("callback", callback);
+	for (var i in data)
 		e.setAttribute(i, JSON.stringify(data[i]));
-    document.documentElement.appendChild(e);
-    var event = document.createEvent("HTMLEvents");
-    event.initEvent("apidogExtensionReceiver", true, false);
-    e.dispatchEvent(event);
-    console.log("APIdogExtensionReceiverSendEvent<" + method + ">:", data);
+	document.documentElement.appendChild(e);
+	var event = document.createEvent("HTMLEvents");
+	event.initEvent("apidogExtensionReceiver", true, false);
+	e.dispatchEvent(event);
+	console.log("APIdogExtensionReceiverSendEvent<" + method + ">:", data);
 };
 
 self.port.on("getAccessToken", function () {
@@ -18,11 +18,11 @@ self.port.on("getAccessToken", function () {
 document.addEventListener("apidogExtensionReceiverOut", function (event) {
 	var data = convertEventToObject(event);
 	console.log("APIdogExtensionReceiverOut<" + data.method + ">: ", data);
-    switch (data.method) {
-    	case "onAccessTokenReceived":
-    		self.port.emit("handleAccessToken", data.useraccesstoken);
-    		break;
-    };
+	switch (data.method) {
+		case "onAccessTokenReceived":
+			self.port.emit("handleAccessToken", data.useraccesstoken);
+			break;
+	};
 }, false, true);
 
 function convertEventToObject (event) {
