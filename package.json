@@ -5,6 +5,6 @@
 	"description": "Расширение, позволяющее работать с LongPoll напрямую от клиента, не используя сервер APIdog'а",
 	"author": "APIdog",
 	"license": "MPL 2.0",
-	"version": "1.1",
+	"version": "1.2",
 	"icon": "icon.png"
 }

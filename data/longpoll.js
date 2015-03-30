@@ -18,9 +18,6 @@ function sendEvent (method, data, callback) {
 	console.log("APIdogExtensionReceiverSendEvent<" + method + ">:", data);
 };
 
-self.port.on("getAccessToken", function () {
-	sendEvent("onAccessTokenRequire", {}, "onAccessTokenReceived");
-});
 document.addEventListener("apidogExtensionReceiverOut", function (event) {
 	var data = convertEventToObject(event);
 	console.log("APIdogExtensionReceiverOut<" + data.method + ">: ", data);
@@ -30,13 +27,18 @@ document.addEventListener("apidogExtensionReceiverOut", function (event) {
 			break;
 	};
 }, false, true);
-
 function convertEventToObject (event) {
 	var object = {}, e = event.target.attributes;
 	for (var i = 0, l = e.length; i < l; ++i)
 		object[e[i].name] = e[i].value;
 	return object;
 };
+self.port.on("getAccessToken", function (event) {
+	sendEvent("onAccessTokenRequire", {}, "onAccessTokenReceived");
+});
 self.port.on("getLongPollData", function (event) {
 	sendEvent("onLongPollDataReceived", {updates: event.updates});
+});
+self.port.on("getLongPollError", function (event) {
+	sendEvent("onLongPollConnectionError", {error: event.error});
 });
