@@ -57,9 +57,9 @@ function receiveEvent (method, data) {
 				};
 
 				data.file = base64ToBlob(data.file);
-			}
+			};
 
-			self.port.emit("onFileUploadRequest", data);
+			//self.port.emit("onFileUploadRequest", {  })
 			break;
 	};
 };
@@ -79,8 +79,6 @@ var APIdog = {
 	userAgent: "VKAndroidApp/4.38-816 (Android 6.0; SDK 23; x86;  Google Nexus 5X; ru)"
 
 };
-
-
 
 /**
  * Обработчик нового события
