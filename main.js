@@ -1,8 +1,12 @@
 var data = require("sdk/self").data,
 	pageMod = require("sdk/page-mod"),
 	request = require("sdk/request"),
+	urls = require("sdk/url"),
+	xhr = require("sdk/net/xhr"),
 
 	inited = false;
+
+const fileIO = require("sdk/io/byte-streams");
 
 pageMod.PageMod({
 	include: "*.apidog.ru",
@@ -32,6 +36,13 @@ pageMod.PageMod({
 			});
 
 		});
+
+		worker.port.on("onFileUploadRequest", function (file) {
+			//var f = fileIO.open(file.file, CREATE_FILE);
+			file.file = urls.DataURL(file.file);
+			console.error(file.file.data);
+			new VKUpload(file).getServer();
+		})
 	}
 });
 
@@ -101,6 +112,11 @@ var LongPoll = {
 		this.setLast();
 		new RequestTask("https://" + s.params.server + "?act=a_check&key=" + s.params.key + "&ts=" + s.params.ts + "&wait=25&mode=66")
 			.setOnComplete(function (result) {
+				result = result.result;
+
+				if (result.failed) {
+					return s.getServer();
+				};
 
 				s.params.ts = result.result.ts;
 				s.request();
@@ -163,16 +179,25 @@ var LongPoll = {
 /**
  * Запрос на любой сайт
  */
-function RequestTask (url, params) {
-	var context = this;
+function RequestTask (url, params, options) {
+	var context = this, headers = {
+		"User-Agent": "VKAndroidApp/4.38-816 (Android 6.0; SDK 23; x86;  Google Nexus 5X; ru)"
+	};
+	options = options || {};
+
+	if (options.headers) {
+		for (var key in options.headers) {
+			headers[key] = options.headers;
+		};
+	};
+
 	this.xhr = request.Request({
 		url: url,
-		headers: {
-			"User-Agent": "VKAndroidApp/4.38-816 (Android 6.0; SDK 23; x86;  Google Nexus 5X; ru)"
-		},
+		headers: headers,
 		content: params,
 		anonymous: true,
 		onComplete: function (response) {
+			console.error(response.text);
 			context.onComplete && context.onComplete({
 				result: response.json || {},
 				isSuccess: true
@@ -231,3 +256,81 @@ RequestTask.prototype = {
 		})
 		.post();
 };
+
+function VKUpload (options) {
+	this.accessToken = options.accessToken;
+	this.mGetServer = { method: options.getServerMethod, params: options.getServerParams, paramName: options.paramName, fileName: options.fileName };
+	this.mFile = options.file;
+	this.mSave = { method: options.saveMethod };
+};
+VKUpload.prototype = {
+
+	getServer: function () {
+		var params = this.mGetServer.params || {}, context = this;
+		params.access_token = this.accessToken;
+		API(this.mGetServer.method, params, function (result) {
+			if (result.response) {
+				context.mServer = result.response.upload_url;
+console.error("GOT UPLOAD URL");
+console.error(result);
+				context.upload();
+			}
+		});
+	},
+
+	upload: function () {
+
+		var request = new xhr.XMLHttpRequest(), fd = new FormData();
+		request.open("POST", this.mServer, true);
+
+		request.onloadend = function (event) {
+			console.error(request.responseText)
+			//var e = JSON.parse(request.responseText);
+		};
+
+		request.send(fd);
+
+
+		var boundaryString = "uploadingfile",
+			boundary = "-----------------------------" + boundaryString,
+			requestbody = [];
+		requestbody.push(boundary);
+		requestbody.push("Content-Disposition: form-data; name=\"" + this.mGetServer.paramName + "\"; filename=\"" + this.mGetServer.fileName + "\"");
+		requestbody.push("Content-Type: application/octet-stream");
+		requestbody.push("");
+		requestbody.push(this.mFile.data);
+		requestbody.push("-----------------------------" + boundary+"--");
+		requestbody = requestbody.join("\r\n");
+		request.setRequestHeader("Content-type", "multipart/form-data; boundary=\"" + boundary + "\"");
+		request.setRequestHeader("Connection", "close");
+		request.setRequestHeader("Content-length", requestbody.length);
+
+		request.send(requestbody);
+
+
+
+/*
+
+
+console.error(requestbody);
+		var request = new RequestTask(this.mServer, requestbody, {
+			"Content-type": "multipart/form-data; boundary=\"" + boundaryString + "\"",
+			"Connection": "close",
+			"Content-Length": requestbody.length
+		})
+			.setOnComplete(function (result) {
+				if (result.isSuccess) {
+					console.log("RESULT UPLOAD");
+					console.error(result.result)
+					callback(result.result);
+				} else {
+					console.error(result); // TODO: как-то реагировать на ошибку
+				}
+			})
+			.post();*/
+	}
+
+};
+
+
+!function(t){function n(){if(!(this instanceof n))return new n;this.boundary="------RWWorkerFormDataBoundary"+Math.random().toString(36);var t=this.data=[];this.__append=function(n){var e,r=0;if("string"==typeof n)for(e=n.length;e>r;++r)t.push(255&n.charCodeAt(r));else if(n&&n.byteLength){"byteOffset"in n||(n=new Uint8Array(n));for(e=n.byteLength;e>r;++r)t.push(255&n[r])}}}if(!t.FormData){t.FormData=n;var e=XMLHttpRequest.prototype.send;XMLHttpRequest.prototype.send=function(t){return t instanceof n&&(t.__endedMultipart||t.__append("--"+t.boundary+"--\r\n"),t.__endedMultipart=!0,this.setRequestHeader("Content-Type","multipart/form-data; boundary="+t.boundary),t=new Uint8Array(t.data)),e.call(this,t)},n.prototype.append=function(t,n,e){if(this.__endedMultipart&&(this.data.length-=this.boundary.length+6,this.__endedMultipart=!1),arguments.length<2)throw new SyntaxError("Not enough arguments");var r="--"+this.boundary+'\r\nContent-Disposition: form-data; name="'+t+'"';return n instanceof File||n instanceof Blob?this.append(t,new Uint8Array((new FileReaderSync).readAsArrayBuffer(n)),e||n.name):("number"==typeof n.byteLength?(r+='; filename="'+(e||"blob").replace(/"/g,"%22")+'"\r\n',r+="Content-Type: application/octet-stream\r\n\r\n",this.__append(r),this.__append(n),r="\r\n"):r+="\r\n\r\n"+n+"\r\n",void this.__append(r))}}}(this||self);
