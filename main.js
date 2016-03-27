@@ -7,8 +7,7 @@ var data = require("sdk/self").data,
 pageMod.PageMod({
 	include: "*.apidog.ru",
 	contentScriptFile: [
-		"./APIdogLib.js",
-		"./longpoll.js"
+		"./APIdogLib.js"
 	],
 	contentScriptWhen: "ready",
 	onAttach: function (worker) {
@@ -18,7 +17,7 @@ pageMod.PageMod({
 				return;
 			};
 
-			LongPoll.init(data.useraccesstoken, worker.port);
+			LongPoll.init(data.useraccesstoken, worker);
 		});
 
 		worker.port.on("onAPIRequestExecute", function (data) {
@@ -48,57 +47,70 @@ var LongPoll = {
 
 	userAccessToken: null,
 	params: null,
-	port: null,
+	workers: [],
+	last: 0,
 
 	/**
 	 * Инициализация LongPoll
 	 */
-	init: function (userAccessToken, port) {
+	init: function (userAccessToken, worker) {
+		var now = parseInt(Date.now() / 1000);
+
+		this.workers.indexOf(worker) < 0 && this.workers.push(worker);
+
+		if (this.last && now - this.last < 60) {
+			return;
+		};
 
 		this.userAccessToken = userAccessToken;
-		this.port = port;
 		this.getServer();
+		this.setLast();
 	},
 
 	/**
 	 * Получение адреса сервера LongPoll
 	 */
 	getServer: function () {
-		var self = this;
+		var s = this;
 
 		API("messages.getLongPollServer", {
-			access_token: this.userAccessToken
+			access_token: s.userAccessToken
 		}, function (data) {
 
 			if (!data.response) {
 				data = data.error;
-				this.sendError("onAccessTokenReceived", ERROR_NO_RESPONSE_VKAPI, data);
+				s.sendError("onAccessTokenReceived", ERROR_NO_RESPONSE_VKAPI, data);
 				return;
 			};
 
-			self.params = data.response;
-			self.request();
+			s.params = data.response;
+			s.request();
 
 		});
+	},
+
+	setLast: function () {
+		this.last = parseInt(Date.now() / 1000);
 	},
 
 	/**
 	 * Запрос к LongPoll для получения новых событий
 	 */
 	request: function () {
-		var self = this;
-		new RequestTask("https://" + this.params.server + "?act=a_check&key=" + this.params.key + "&ts=" + this.params.ts + "&wait=25&mode=66")
+		var s = this;
+		this.setLast();
+		new RequestTask("https://" + s.params.server + "?act=a_check&key=" + s.params.key + "&ts=" + s.params.ts + "&wait=25&mode=66")
 			.setOnComplete(function (result) {
 
-				self.params.ts = result.result.ts;
-				self.request();
-				self.sendEvents(result.result.updates);
+				s.params.ts = result.result.ts;
+				s.request();
+				s.sendEvents(result.result.updates);
 
 			})
 			.setOnError(function (event) {
 
-				this.sendError("onLongPollConnectionError", ERROR_WHILE_REQUEST_LONGPOLL, event);
-				this.getServer();
+				s.sendError("onLongPollConnectionError", ERROR_WHILE_REQUEST_LONGPOLL, event);
+				s.getServer();
 
 			})
 			.post();
@@ -108,8 +120,15 @@ var LongPoll = {
 	 * Отправка событий на сайт
 	 */
 	sendEvents: function (items) {
-		this.port.emit("onLongPollDataReceived", {
-			updates: items
+		var context = this;
+		this.workers.forEach(function (worker) {
+			try {
+				worker.port.emit("onLongPollDataReceived", {
+					updates: items
+				});
+			} catch (e) {
+				context.detach(worker);
+			};
 		});
 	},
 
@@ -117,13 +136,28 @@ var LongPoll = {
 	 * Отправка событий на сайт
 	 */
 	sendError: function (method, errorId, event) {
-		this.port.emit(method, {
-			errorId: errorId,
-			error: event
+		this.workers.forEach(function (worker) {
+			try {
+				worker.port.emit(method, {
+					errorId: errorId,
+					error: event
+				});
+			} catch (e) {
+				context.detach(worker);
+			};
 		});
 	},
 
-
+	detach: function (worker) {
+		console.error("WORKER DETACHING");
+		var index = this.workers.indexOf(worker);
+		if (index < 0) {
+			return;
+		};
+		console.error("WORKER WAS DETACHED");
+		this.workers.splice(index, 1);
+		worker = null;
+	}
 };
 
 /**

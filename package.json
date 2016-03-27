@@ -1,22 +1,17 @@
 {
-  "title": "APIdog Plus",
-  "name": "apidogplus",
-  "version": "2.0.0",
-  "description": "Extend APIdog",
-  "main": "./main.js",
-  "author": "Vladislav Veluga",
-  "license": "MIT",
-  "manifest_version": 2,
-  "engines": {
-    "firefox": ">=38.0a1",
-    "fennec": ">=38.0a1"
-  },
-  "permissions": [
-    "tabs",
-    "webRequest",
-    "webRequestBlocking",
-    "*://apidog.ru/*",
-    "*://*.apidog.ru/*",
-    "*://*.vk.com/*"
-  ]
+	"title": "APIdog Plus",
+	"name": "apidogplus",
+	"version": "2.0.1",
+	"description": "Extend APIdog",
+	"main": "./main.js",
+	"author": "Vladislav Veluga",
+	"license": "MIT",
+	"manifest_version": 2,
+	"engines": {
+		"firefox": ">=38.0a1",
+		"fennec": ">=38.0a1"
+	},
+	"permissions": {
+		"private-browsing": true
+	}
 }
