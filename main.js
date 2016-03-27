@@ -118,9 +118,9 @@ var LongPoll = {
 					return s.getServer();
 				};
 
-				s.params.ts = result.result.ts;
+				s.params.ts = result.ts;
 				s.request();
-				s.sendEvents(result.result.updates);
+				s.sendEvents(result.updates);
 
 			})
 			.setOnError(function (event) {
@@ -152,6 +152,7 @@ var LongPoll = {
 	 * Отправка событий на сайт
 	 */
 	sendError: function (method, errorId, event) {
+		var context = this;
 		this.workers.forEach(function (worker) {
 			try {
 				worker.port.emit(method, {
